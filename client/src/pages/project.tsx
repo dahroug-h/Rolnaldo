@@ -3,6 +3,7 @@ import { useRoute, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,13 +13,14 @@ import {
 import JoinForm from "@/components/join-form";
 import { useState } from "react";
 import { type Project, type TeamMember } from "@shared/schema";
-import { Users2, MessageCircle, ArrowLeft, RefreshCw, MoreVertical } from "lucide-react";
+import { Users2, MessageCircle, ArrowLeft, RefreshCw, MoreVertical, Search } from "lucide-react";
 import { SiLinkedin } from "react-icons/si";
 
 export default function ProjectPage() {
   const [_, params] = useRoute("/project/:id");
   const projectId = parseInt(params?.id || "0");
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: project } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
@@ -36,6 +38,10 @@ export default function ProjectPage() {
   const isAdmin = adminStatus?.isAdmin;
 
   if (!project) return <div>Project not found</div>;
+
+  const filteredMembers = members.filter((member) =>
+    member.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -75,8 +81,18 @@ export default function ProjectPage() {
           </Button>
         </div>
 
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search members by name..."
+            className="pl-10"
+          />
+        </div>
+
         <div className="grid gap-4">
-          {members.map((member) => (
+          {filteredMembers.map((member) => (
             <Card key={member.id} className="w-full">
               <CardContent className="flex items-center justify-between p-6">
                 <div className="flex items-center space-x-4">
