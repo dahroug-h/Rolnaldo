@@ -2,7 +2,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import {
-  DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -16,6 +15,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { type Project, insertTeamMemberSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -34,12 +40,13 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
       name: "",
       whatsappNumber: "",
       projectId: project.id,
+      sectionNumber: undefined,
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
-      await apiRequest("POST", "/api/members", form.getValues());
+    mutationFn: async (values: any) => {
+      await apiRequest("POST", "/api/members", values);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", "members"] });
@@ -52,7 +59,7 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
   });
 
   return (
-    <DialogContent>
+    <>
       <DialogHeader>
         <DialogTitle>Join {project.name} Team</DialogTitle>
       </DialogHeader>
@@ -80,8 +87,36 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
               <FormItem>
                 <FormLabel>WhatsApp Number</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="+1234567890" />
+                  <Input {...field} placeholder="e.g., 1234567890" />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="sectionNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Section Number (Optional)</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your section" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {[1, 2, 3, 4].map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        Section {num}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -96,6 +131,6 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
           </Button>
         </form>
       </Form>
-    </DialogContent>
+    </>
   );
 }

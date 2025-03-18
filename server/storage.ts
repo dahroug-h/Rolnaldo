@@ -10,6 +10,7 @@ export interface IStorage {
   getProjectById(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   getTeamMembers(projectId?: number): Promise<TeamMember[]>;
+  getTeamMemberById(id: number): Promise<TeamMember | undefined>;
   addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
   removeTeamMember(id: number): Promise<void>;
 }
@@ -55,9 +56,13 @@ export class MemStorage implements IStorage {
     return members;
   }
 
+  async getTeamMemberById(id: number): Promise<TeamMember | undefined> {
+    return this.teamMembers.get(id);
+  }
+
   async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
     const id = this.memberId++;
-    const newMember = { ...member, id };
+    const newMember = { ...member, id, sectionNumber: member.sectionNumber ?? null };
     this.teamMembers.set(id, newMember);
     return newMember;
   }

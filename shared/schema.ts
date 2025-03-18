@@ -12,6 +12,7 @@ export const teamMembers = pgTable("team_members", {
   name: text("name").notNull(),
   whatsappNumber: text("whatsapp_number").notNull(),
   projectId: integer("project_id").notNull(),
+  sectionNumber: integer("section_number"),
 });
 
 export const insertProjectSchema = createInsertSchema(projects).pick({
@@ -23,9 +24,11 @@ export const insertTeamMemberSchema = createInsertSchema(teamMembers)
     name: true,
     whatsappNumber: true,
     projectId: true,
+    sectionNumber: true,
   })
   .extend({
-    whatsappNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid WhatsApp number"),
+    whatsappNumber: z.string().regex(/^[+]?\d{1,15}$/, "Invalid WhatsApp number"),
+    sectionNumber: z.number().min(1).max(4).optional(),
   });
 
 export type Project = typeof projects.$inferSelect;
