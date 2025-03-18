@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { type Project, insertTeamMemberSchema } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 type JoinFormProps = {
   project: Project;
@@ -27,7 +27,7 @@ type JoinFormProps = {
 
 export default function JoinForm({ project, onClose }: JoinFormProps) {
   const { toast } = useToast();
-  
+
   const form = useForm({
     resolver: zodResolver(insertTeamMemberSchema),
     defaultValues: {
@@ -39,10 +39,10 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
 
   const mutation = useMutation({
     mutationFn: async (data: typeof form.getValues) => {
-      await apiRequest("POST", "/api/members", data);
+      await apiRequest("POST", "/api/members", form.getValues());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", "members"] });
       toast({
         title: "Success",
         description: "You have joined the team!",
