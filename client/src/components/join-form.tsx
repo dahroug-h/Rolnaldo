@@ -61,7 +61,7 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
         const reader = new FileReader();
         const photoUrl = await new Promise((resolve) => {
           reader.onload = (e) => resolve(e.target?.result);
-          reader.readAsDataURL(formData.photo);
+          reader.readAsDataURL(formData.photo as Blob);
         });
         formData.photoUrl = photoUrl as string;
         delete formData.photo;

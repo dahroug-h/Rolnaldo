@@ -3,10 +3,16 @@ import { useRoute, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import JoinForm from "@/components/join-form";
 import { useState } from "react";
 import { type Project, type TeamMember } from "@shared/schema";
-import { Users2, MessageCircle, ArrowLeft, RefreshCw } from "lucide-react";
+import { Users2, MessageCircle, ArrowLeft, RefreshCw, MoreVertical } from "lucide-react";
 import { SiLinkedin } from "react-icons/si";
 
 export default function ProjectPage() {
@@ -25,35 +31,33 @@ export default function ProjectPage() {
 
   if (!project) return <div>Project not found</div>;
 
-  const sortedMembers = [...members].sort((a, b) => {
-    if (a.sectionNumber && b.sectionNumber) return a.sectionNumber - b.sectionNumber;
-    if (a.sectionNumber) return -1;
-    if (b.sectionNumber) return 1;
-    return 0;
-  });
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link href="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="hover:bg-primary/10 transition-colors"
+              >
+                <ArrowLeft className="h-6 w-6" />
               </Button>
             </Link>
             <img 
-              src="/attached_assets/Logo Transparent.png" 
+              src="/attached_assets/Logo%20Transparent.png" 
               alt="Logo" 
               className="h-12"
             />
           </div>
           <Button
-            variant="ghost"
-            size="icon"
+            variant="outline"
+            size="lg"
             onClick={() => window.location.reload()}
+            className="hover:bg-primary/10 transition-colors"
           >
-            <RefreshCw className="h-5 w-5" />
+            <RefreshCw className="h-6 w-6" />
           </Button>
         </div>
       </header>
@@ -70,7 +74,7 @@ export default function ProjectPage() {
         </div>
 
         <div className="grid gap-4">
-          {sortedMembers.map((member) => (
+          {members.map((member) => (
             <Card key={member.id} className="w-full">
               <CardContent className="flex items-center justify-between p-6">
                 <div className="flex items-center space-x-4">
@@ -105,6 +109,26 @@ export default function ProjectPage() {
                       <MessageCircle className="h-6 w-6 text-green-600" />
                     </Button>
                   </a>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => {
+                          const response = fetch(`/api/members/${member.id}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                          });
+                        }}
+                      >
+                        Remove me from team
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>
