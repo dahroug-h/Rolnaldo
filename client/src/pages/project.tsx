@@ -45,11 +45,7 @@ export default function ProjectPage() {
                 <ArrowLeft className="h-6 w-6" />
               </Button>
             </Link>
-            <img 
-              src="/attached_assets/Logo%20Transparent.png" 
-              alt="Logo" 
-              className="h-12"
-            />
+            <span className="text-xl font-semibold">By EECE 27</span>
           </div>
           <Button
             variant="outline"
