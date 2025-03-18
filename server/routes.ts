@@ -104,17 +104,23 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    if (!req.session.userId || req.session.userId !== member.id) {
-      res.status(403).json({ error: "You can only remove yourself from teams" });
+    // Allow deletion only if user is admin or the member themselves
+    if (!req.session.isAdmin && (!req.session.userId || req.session.userId !== member.id)) {
+      res.status(403).json({ error: "You can only remove yourself from teams or be an admin" });
       return;
     }
 
     await storage.removeTeamMember(id);
-    req.session.destroy(err => {
-      if (err) {
-        console.error('Error destroying session:', err);
-      }
-    });
+
+    // Only destroy session if the user removed themselves (not admin)
+    if (!req.session.isAdmin && req.session.userId === member.id) {
+      req.session.destroy(err => {
+        if (err) {
+          console.error('Error destroying session:', err);
+        }
+      });
+    }
+
     res.status(204).send();
   });
 

@@ -29,6 +29,12 @@ export default function ProjectPage() {
     enabled: !!projectId,
   });
 
+  const { data: adminStatus } = useQuery({
+    queryKey: ["/api/admin/status"],
+  });
+
+  const isAdmin = adminStatus?.isAdmin;
+
   if (!project) return <div>Project not found</div>;
 
   return (
@@ -74,19 +80,11 @@ export default function ProjectPage() {
             <Card key={member.id} className="w-full">
               <CardContent className="flex items-center justify-between p-6">
                 <div className="flex items-center space-x-4">
-                  {member.photoUrl ? (
-                    <img 
-                      src={member.photoUrl} 
-                      alt={member.name} 
-                      className="h-16 w-16 rounded-full object-cover bg-primary/10"
-                    />
-                  ) : (
-                    <div className="bg-primary/10 p-4 rounded-full">
-                      <Users2 className="h-10 w-10 text-primary" />
-                    </div>
-                  )}
+                  <div className="bg-primary/10 p-3 rounded-full">
+                    <Users2 className="h-8 w-8 text-primary" />
+                  </div>
                   <div>
-                    <h3 className="text-xl font-semibold">{member.name}</h3>
+                    <h2 className="text-xl font-semibold">{member.name}</h2>
                     {member.sectionNumber && (
                       <p className="text-sm text-muted-foreground">
                         Section {member.sectionNumber}
@@ -112,17 +110,19 @@ export default function ProjectPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => {
-                          const response = fetch(`/api/members/${member.id}`, {
-                            method: 'DELETE',
-                            credentials: 'include'
-                          });
-                        }}
-                      >
-                        Remove me from team
-                      </DropdownMenuItem>
+                      {(isAdmin || member.userId === adminStatus?.userId) && (
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => {
+                            const response = fetch(`/api/members/${member.id}`, {
+                              method: 'DELETE',
+                              credentials: 'include'
+                            });
+                          }}
+                        >
+                          Remove me from team
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
