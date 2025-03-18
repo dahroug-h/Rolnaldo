@@ -36,8 +36,6 @@ type FormData = {
   whatsappNumber: string;
   projectId: number;
   sectionNumber?: number;
-  photo?: File;
-  photoUrl?: string;
 };
 
 export default function JoinForm({ project, onClose }: JoinFormProps) {
@@ -50,23 +48,12 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
       whatsappNumber: "",
       projectId: project.id,
       sectionNumber: undefined,
-      photoUrl: undefined,
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
-      const formData = { ...values };
-      if (formData.photo) {
-        const reader = new FileReader();
-        const photoUrl = await new Promise((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result);
-          reader.readAsDataURL(formData.photo as Blob);
-        });
-        formData.photoUrl = photoUrl as string;
-        delete formData.photo;
-      }
-      await apiRequest("POST", "/api/members", formData);
+      await apiRequest("POST", "/api/members", values);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", "members"] });
@@ -107,8 +94,11 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
               <FormItem>
                 <FormLabel>WhatsApp Number</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="e.g., 1234567890" />
+                  <Input {...field} placeholder="+201234567890" />
                 </FormControl>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Enter your number in format: +201234567890
+                </p>
                 <FormMessage />
               </FormItem>
             )}
@@ -137,28 +127,6 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="photo"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FormItem>
-                <FormLabel>Photo (Optional)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) onChange(file);
-                    }}
-                    {...field}
-                  />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

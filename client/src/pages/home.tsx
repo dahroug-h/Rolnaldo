@@ -6,7 +6,7 @@ import { type Project } from "@shared/schema";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
@@ -18,10 +18,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-          Team Booking Platform
-        </h1>
-        
+        <div className="flex flex-col items-center mb-8">
+          <img 
+            src="/attached_assets/Logo%20Transparent.png" 
+            alt="404 Team Not Found" 
+            className="h-24 mb-4"
+          />
+          <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            404 Team Not Found
+          </h1>
+        </div>
+
         <SearchFilter 
           value={searchQuery}
           onChange={setSearchQuery}
