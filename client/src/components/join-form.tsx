@@ -31,22 +31,42 @@ type JoinFormProps = {
   onClose: () => void;
 };
 
+type FormData = {
+  name: string;
+  whatsappNumber: string;
+  projectId: number;
+  sectionNumber?: number;
+  photo?: File;
+  photoUrl?: string;
+};
+
 export default function JoinForm({ project, onClose }: JoinFormProps) {
   const { toast } = useToast();
 
-  const form = useForm({
+  const form = useForm<FormData>({
     resolver: zodResolver(insertTeamMemberSchema),
     defaultValues: {
       name: "",
       whatsappNumber: "",
       projectId: project.id,
       sectionNumber: undefined,
+      photoUrl: undefined,
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (values: any) => {
-      await apiRequest("POST", "/api/members", values);
+    mutationFn: async (values: FormData) => {
+      const formData = { ...values };
+      if (formData.photo) {
+        const reader = new FileReader();
+        const photoUrl = await new Promise((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result);
+          reader.readAsDataURL(formData.photo);
+        });
+        formData.photoUrl = photoUrl as string;
+        delete formData.photo;
+      }
+      await apiRequest("POST", "/api/members", formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", "members"] });
@@ -117,6 +137,28 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="photo"
+            render={({ field: { value, onChange, ...field } }) => (
+              <FormItem>
+                <FormLabel>Photo (Optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) onChange(file);
+                    }}
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

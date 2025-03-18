@@ -9,6 +9,7 @@ export interface IStorage {
   getProjects(): Promise<Project[]>;
   getProjectById(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
+  removeProject(id: number): Promise<void>;
   getTeamMembers(projectId?: number): Promise<TeamMember[]>;
   getTeamMemberById(id: number): Promise<TeamMember | undefined>;
   addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
@@ -46,6 +47,15 @@ export class MemStorage implements IStorage {
     const newProject = { ...project, id };
     this.projects.set(id, newProject);
     return newProject;
+  }
+
+  async removeProject(id: number): Promise<void> {
+    // Remove all team members of this project first
+    const members = await this.getTeamMembers(id);
+    for (const member of members) {
+      await this.removeTeamMember(member.id);
+    }
+    this.projects.delete(id);
   }
 
   async getTeamMembers(projectId?: number): Promise<TeamMember[]> {

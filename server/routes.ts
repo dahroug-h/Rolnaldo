@@ -6,10 +6,36 @@ import { insertProjectSchema, insertTeamMemberSchema } from "@shared/schema";
 declare module 'express-session' {
   interface SessionData {
     userId?: number;
+    isAdmin?: boolean;
   }
 }
 
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+function requireAdmin(req: any, res: any, next: any) {
+  if (!req.session?.isAdmin) {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
+  next();
+}
+
 export async function registerRoutes(app: Express) {
+  // Admin login
+  app.post("/api/admin/login", async (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+      req.session.isAdmin = true;
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: "Invalid password" });
+    }
+  });
+
+  app.get("/api/admin/status", (req, res) => {
+    res.json({ isAdmin: !!req.session?.isAdmin });
+  });
+
   app.get("/api/projects", async (_req, res) => {
     const projects = await storage.getProjects();
     res.json(projects);
@@ -31,7 +57,7 @@ export async function registerRoutes(app: Express) {
     res.json(members);
   });
 
-  app.post("/api/projects", async (req, res) => {
+  app.post("/api/projects", requireAdmin, async (req, res) => {
     const result = insertProjectSchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: "Invalid project data" });
@@ -41,14 +67,31 @@ export async function registerRoutes(app: Express) {
     res.json(project);
   });
 
+  app.delete("/api/projects/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    await storage.removeProject(id);
+    res.status(204).send();
+  });
+
   app.post("/api/members", async (req, res) => {
     const result = insertTeamMemberSchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: "Invalid member data" });
       return;
     }
+
+    // Check for existing membership
+    const existingMembers = await storage.getTeamMembers(result.data.projectId);
+    const hasExisting = existingMembers.some(
+      member => member.whatsappNumber === result.data.whatsappNumber
+    );
+
+    if (hasExisting) {
+      res.status(400).json({ error: "You are already a member of this project" });
+      return;
+    }
+
     const member = await storage.addTeamMember(result.data);
-    // Store the member's ID in the session for self-deletion
     req.session.userId = member.id;
     res.json(member);
   });
