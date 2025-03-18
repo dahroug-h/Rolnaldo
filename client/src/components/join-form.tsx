@@ -1,0 +1,101 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import {
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { type Project, insertTeamMemberSchema } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+
+type JoinFormProps = {
+  project: Project;
+  onClose: () => void;
+};
+
+export default function JoinForm({ project, onClose }: JoinFormProps) {
+  const { toast } = useToast();
+  
+  const form = useForm({
+    resolver: zodResolver(insertTeamMemberSchema),
+    defaultValues: {
+      name: "",
+      whatsappNumber: "",
+      projectId: project.id,
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (data: typeof form.getValues) => {
+      await apiRequest("POST", "/api/members", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: "Success",
+        description: "You have joined the team!",
+      });
+      onClose();
+    },
+  });
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Join {project.name} Team</DialogTitle>
+      </DialogHeader>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Your name" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="whatsappNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>WhatsApp Number</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="+1234567890" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending ? "Joining..." : "Join Team"}
+          </Button>
+        </form>
+      </Form>
+    </DialogContent>
+  );
+}
