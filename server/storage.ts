@@ -4,82 +4,159 @@ import {
   type TeamMember,
   type InsertTeamMember,
 } from "@shared/schema";
+import { MongoClient, ObjectId } from "mongodb";
+
+// Convert MongoDB _id to id for frontend
+function mapMongoProject(doc: any): Project {
+  if (!doc) return doc;
+  return {
+    id: doc._id.toString(),
+    name: doc.name,
+  };
+}
+
+function mapMongoTeamMember(doc: any): TeamMember {
+  if (!doc) return doc;
+  return {
+    id: doc._id.toString(),
+    name: doc.name,
+    whatsappNumber: doc.whatsappNumber,
+    projectId: doc.projectId,
+    sectionNumber: doc.sectionNumber || null,
+  };
+}
 
 export interface IStorage {
   getProjects(): Promise<Project[]>;
-  getProjectById(id: number): Promise<Project | undefined>;
+  getProjectById(id: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  removeProject(id: number): Promise<void>;
-  getTeamMembers(projectId?: number): Promise<TeamMember[]>;
-  getTeamMemberById(id: number): Promise<TeamMember | undefined>;
+  removeProject(id: string): Promise<void>;
+  getTeamMembers(projectId?: string): Promise<TeamMember[]>;
+  getTeamMemberById(id: string): Promise<TeamMember | undefined>;
   addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
-  removeTeamMember(id: number): Promise<void>;
+  removeTeamMember(id: string): Promise<void>;
+  connect(): Promise<void>;
+  close(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private projects: Map<number, Project>;
-  private teamMembers: Map<number, TeamMember>;
-  private projectId: number;
-  private memberId: number;
+export class MongoDBStorage implements IStorage {
+  private client: MongoClient;
+  private connected: boolean = false;
+  private db: any;
 
-  constructor() {
-    this.projects = new Map();
-    this.teamMembers = new Map();
-    this.projectId = 1;
-    this.memberId = 1;
+  constructor(uri: string) {
+    this.client = new MongoClient(uri);
+  }
 
-    // Add some initial projects
-    this.createProject({ name: "Web Development" });
-    this.createProject({ name: "Mobile App" });
-    this.createProject({ name: "AI/ML Project" });
+  async connect(): Promise<void> {
+    try {
+      await this.client.connect();
+      this.db = this.client.db("team_not_found");
+      this.connected = true;
+      console.log("Connected to MongoDB Atlas");
+      
+      // Create initial projects if database is empty
+      const projectsCount = await this.db.collection("projects").countDocuments();
+      if (projectsCount === 0) {
+        await this.db.collection("projects").insertMany([
+          { name: "Web Development" },
+          { name: "Mobile App" },
+          { name: "AI/ML Project" }
+        ]);
+        console.log("Created initial projects");
+      }
+    } catch (error) {
+      console.error("Failed to connect to MongoDB:", error);
+      throw error;
+    }
+  }
+
+  async close(): Promise<void> {
+    if (this.connected) {
+      await this.client.close();
+      this.connected = false;
+      console.log("Disconnected from MongoDB");
+    }
   }
 
   async getProjects(): Promise<Project[]> {
-    return Array.from(this.projects.values());
+    const projects = await this.db.collection("projects").find().toArray();
+    return projects.map(mapMongoProject);
   }
 
-  async getProjectById(id: number): Promise<Project | undefined> {
-    return this.projects.get(id);
+  async getProjectById(id: string): Promise<Project | undefined> {
+    try {
+      const project = await this.db.collection("projects").findOne({ _id: new ObjectId(id) });
+      return project ? mapMongoProject(project) : undefined;
+    } catch (error) {
+      console.error(`Error getting project by ID: ${id}`, error);
+      return undefined;
+    }
   }
 
   async createProject(project: InsertProject): Promise<Project> {
-    const id = this.projectId++;
-    const newProject = { ...project, id };
-    this.projects.set(id, newProject);
-    return newProject;
+    const result = await this.db.collection("projects").insertOne(project);
+    return {
+      id: result.insertedId.toString(),
+      ...project
+    };
   }
 
-  async removeProject(id: number): Promise<void> {
-    // Remove all team members of this project first
-    const members = await this.getTeamMembers(id);
-    for (const member of members) {
-      await this.removeTeamMember(member.id);
+  async removeProject(id: string): Promise<void> {
+    try {
+      // Remove all team members of this project first
+      await this.db.collection("team_members").deleteMany({ projectId: id });
+      // Then remove the project
+      await this.db.collection("projects").deleteOne({ _id: new ObjectId(id) });
+    } catch (error) {
+      console.error(`Error removing project: ${id}`, error);
+      throw error;
     }
-    this.projects.delete(id);
   }
 
-  async getTeamMembers(projectId?: number): Promise<TeamMember[]> {
-    const members = Array.from(this.teamMembers.values());
+  async getTeamMembers(projectId?: string): Promise<TeamMember[]> {
+    let query = {};
     if (projectId) {
-      return members.filter((member) => member.projectId === projectId);
+      query = { projectId };
     }
-    return members;
+    const members = await this.db.collection("team_members").find(query).toArray();
+    return members.map(mapMongoTeamMember);
   }
 
-  async getTeamMemberById(id: number): Promise<TeamMember | undefined> {
-    return this.teamMembers.get(id);
+  async getTeamMemberById(id: string): Promise<TeamMember | undefined> {
+    try {
+      const member = await this.db.collection("team_members").findOne({ _id: new ObjectId(id) });
+      return member ? mapMongoTeamMember(member) : undefined;
+    } catch (error) {
+      console.error(`Error getting team member by ID: ${id}`, error);
+      return undefined;
+    }
   }
 
   async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
-    const id = this.memberId++;
-    const newMember = { ...member, id, sectionNumber: member.sectionNumber ?? null };
-    this.teamMembers.set(id, newMember);
-    return newMember;
+    const result = await this.db.collection("team_members").insertOne({
+      ...member,
+      sectionNumber: member.sectionNumber || null
+    });
+    return {
+      id: result.insertedId.toString(),
+      ...member,
+      sectionNumber: member.sectionNumber || null
+    };
   }
 
-  async removeTeamMember(id: number): Promise<void> {
-    this.teamMembers.delete(id);
+  async removeTeamMember(id: string): Promise<void> {
+    try {
+      await this.db.collection("team_members").deleteOne({ _id: new ObjectId(id) });
+    } catch (error) {
+      console.error(`Error removing team member: ${id}`, error);
+      throw error;
+    }
   }
 }
 
-export const storage = new MemStorage();
+// MongoDB connection URI
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://hsnh08130:Akj6qe2RbgJ2mrQF@cluster0.ludgd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+// Create and export the MongoDB storage instance
+export const storage = new MongoDBStorage(MONGODB_URI);
