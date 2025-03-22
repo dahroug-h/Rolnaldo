@@ -36,6 +36,10 @@ export async function registerRoutes(app: Express) {
   app.get("/api/admin/status", (req, res) => {
     res.json({ isAdmin: !!req.session?.isAdmin });
   });
+  
+  app.get("/api/me", (req, res) => {
+    res.json({ userId: req.session?.userId || null });
+  });
 
   app.get("/api/projects", async (_req, res) => {
     const projects = await storage.getProjects();

@@ -35,7 +35,12 @@ export default function ProjectPage() {
     queryKey: ["/api/admin/status"],
   });
 
+  const { data: meData } = useQuery<{ userId: string | null }>({
+    queryKey: ["/api/me"],
+  });
+
   const isAdmin = adminStatus?.isAdmin || false;
+  const currentUserId = meData?.userId || null;
 
   if (!project) return <div>Project not found</div>;
 
@@ -118,7 +123,29 @@ export default function ProjectPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {isAdmin && (
+                      {/* Show Remove Me option if the member is the current user */}
+                      {currentUserId === member.id && (
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={async () => {
+                            try {
+                              await fetch(`/api/members/${member.id}`, {
+                                method: 'DELETE',
+                                credentials: 'include'
+                              });
+                              // Refresh data after successful removal
+                              refetchMembers();
+                            } catch (error) {
+                              console.error("Failed to remove self:", error);
+                            }
+                          }}
+                        >
+                          Remove Me
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {/* Admin can remove anyone */}
+                      {isAdmin && currentUserId !== member.id && (
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={async () => {
@@ -134,7 +161,7 @@ export default function ProjectPage() {
                             }
                           }}
                         >
-                          Remove from team
+                          Remove Member
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
