@@ -50,10 +50,9 @@ export default function Home() {
           </div>
         </div>
       </main>
-      
+
       <footer className="border-t py-4 text-center text-sm text-muted-foreground">
         <div className="container mx-auto px-4 flex items-center justify-center space-x-4">
-          <p>© Hassan Dahroug 2025</p>
           <a
             href="https://www.linkedin.com/in/hassan-dahroug-736ab7285/"
             target="_blank"
