@@ -42,6 +42,12 @@ export default function ProjectPage() {
 
   const isAdmin = adminStatus?.isAdmin || false;
   const currentUserId = meData?.userId || null;
+  
+  // Check if user is logged in (has a userId) and if they're a member of this project
+  const isUserLoggedIn = !!currentUserId;
+  const isUserMember = isUserLoggedIn && members.some(
+    member => member.id === currentUserId || member.userId === currentUserId
+  );
 
   if (!project) return <div>Project not found</div>;
 
@@ -78,6 +84,16 @@ export default function ProjectPage() {
             Join Team
           </Button>
         </div>
+
+        {/* User status message */}
+        {isUserLoggedIn && (
+          <div className={`px-4 py-3 mb-6 rounded-md border ${isUserMember ? 'bg-green-50 border-green-200 text-green-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+            {isUserMember 
+              ? "You're a registered member of this project. Use 'Remove Me' to leave the project."
+              : "You're logged in but not a member of this project. Use 'Join Team' to participate."
+            }
+          </div>
+        )}
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />

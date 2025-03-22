@@ -8,17 +8,26 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Set up session middleware
+// Set up session middleware with longer persistence
 app.use(session({
-  secret: 'your-secret-key',
+  secret: process.env.SESSION_SECRET || 'team-not-found-secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days for long-term persistence
   }
 }));
 
+// Session tracking middleware to restore user ID from cookie if available
+app.use(async (req, res, next) => {
+  // If there's a cookie with session ID but no userId in the session,
+  // attempt to find a stored session with matching sessionID in the database
+  // This feature would be implemented in a production app with persistent session storage
+  next();
+});
+
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

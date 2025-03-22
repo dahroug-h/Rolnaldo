@@ -37,8 +37,17 @@ export async function registerRoutes(app: Express) {
     res.json({ isAdmin: !!req.session?.isAdmin });
   });
   
-  app.get("/api/me", (req, res) => {
-    res.json({ userId: req.session?.userId || null });
+  app.get("/api/me", async (req, res) => {
+    const userId = req.session?.userId;
+    
+    // Step 3: When a user returns, we recognize them by their userId in the session
+    // This completes the workflow: 1) Register → 2) Login → 3) Return & Recognize 
+    if (userId) {
+      // If we wanted to add more info, we could look up the user's data here
+      console.log(`User recognized with ID: ${userId}`);
+    }
+    
+    res.json({ userId: userId || null });
   });
 
   app.get("/api/projects", async (_req, res) => {
@@ -97,7 +106,7 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    // Check for existing membership
+    // Step 1: Check for existing membership by WhatsApp number
     const existingMembers = await storage.getTeamMembers(result.data.projectId);
     const hasExisting = existingMembers.some(
       member => member.whatsappNumber === result.data.whatsappNumber
@@ -108,10 +117,10 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    // Generate a userId if not provided (which will be the same as the document ID)
-    // This will be stored both in the session and in the database for persistence
+    // Step 2: Prepare the member data to be stored
     const memberData = { ...result.data };
     
+    // Step 3: Add the member to the database (without userId at first)
     const member = await storage.addTeamMember(memberData);
     
     // Make sure member has an ID
@@ -120,13 +129,15 @@ export async function registerRoutes(app: Express) {
       return;
     }
     
-    // Update the member to include its own ID as the userId for persistence
+    // Step 4: Update the member with a permanent userId (using MongoDB _id)
+    // This is the key step for implementing the persistent user ID pattern
     await storage.updateTeamMemberUserId(member.id, member.id);
+    console.log(`User registered with ID: ${member.id}`);
     
-    // Store the userId in the session for the current user
+    // Step 5: Store the userId in the session (login step)
     req.session.userId = member.id;
     
-    // Return the updated member with userId
+    // Step 6: Return the complete member data
     const updatedMember = await storage.getTeamMemberById(member.id);
     
     if (!updatedMember) {

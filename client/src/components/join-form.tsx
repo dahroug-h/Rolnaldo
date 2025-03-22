@@ -102,6 +102,9 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
                 <p className="text-sm text-muted-foreground mt-1">
                   Enter your number in format: +201234567890
                 </p>
+                <p className="text-xs text-primary mt-1">
+                  Your session will be remembered so you can return later
+                </p>
                 <FormMessage />
               </FormItem>
             )}
