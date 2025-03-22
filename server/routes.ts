@@ -165,7 +165,8 @@ export async function registerRoutes(app: Express) {
 
       // Only clear the session if the user removed themselves and is not an admin
       if (!req.session.isAdmin && isCurrentUser) {
-        req.session.userId = null; // Keep the session but clear the userId
+        // Set userId to undefined instead of null to satisfy TypeScript
+        req.session.userId = undefined;
       }
 
       res.status(204).send();
