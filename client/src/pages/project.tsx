@@ -13,7 +13,7 @@ import {
 import JoinForm from "@/components/join-form";
 import { useState } from "react";
 import { type Project, type TeamMember } from "@shared/schema";
-import { Users2, MessageCircle, ArrowLeft, RefreshCw, MoreVertical, Search } from "lucide-react";
+import { Users2, MessageCircle, ArrowLeft, MoreVertical, Search } from "lucide-react";
 import { SiLinkedin } from "react-icons/si";
 
 export default function ProjectPage() {
@@ -59,14 +59,6 @@ export default function ProjectPage() {
             </Link>
             <span className="text-xl font-semibold">By EECE 27</span>
           </div>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => refetchMembers()}
-            className="hover:bg-primary/10 transition-colors"
-          >
-            <RefreshCw className="h-6 w-6" />
-          </Button>
         </div>
       </header>
 
