@@ -123,8 +123,8 @@ export default function ProjectPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {/* Show Remove Me option if the member is the current user */}
-                      {currentUserId === member.id && (
+                      {/* Show Remove Me option if the member is the current user, using persistent userId */}
+                      {currentUserId && (currentUserId === member.id || currentUserId === member.userId) && (
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={async () => {
@@ -144,8 +144,8 @@ export default function ProjectPage() {
                         </DropdownMenuItem>
                       )}
                       
-                      {/* Admin can remove anyone */}
-                      {isAdmin && currentUserId !== member.id && (
+                      {/* Admin can remove anyone except themselves (they should use Remove Me) */}
+                      {isAdmin && currentUserId && currentUserId !== member.id && currentUserId !== member.userId && (
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={async () => {
