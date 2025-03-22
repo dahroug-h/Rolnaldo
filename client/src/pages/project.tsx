@@ -181,8 +181,7 @@ export default function ProjectPage() {
 
       <footer className="border-t py-4 text-center text-sm text-muted-foreground">
         <div className="container mx-auto px-4 flex items-center justify-center space-x-4">
-          <p>© Hassan Dahroug March 2025</p>
-          <a href="https://www.linkedin.com/in/hassan-dahroug-736ab7285/" target="_blank" rel="noopener noreferrer" className="hover:text-primary">LinkedIn</a>
+          <p>© Hassan Dahroug 2025</p>
           <a
             href="https://www.linkedin.com/in/hassan-dahroug-736ab7285/"
             target="_blank"
