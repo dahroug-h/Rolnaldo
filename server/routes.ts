@@ -108,9 +108,33 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    const member = await storage.addTeamMember(result.data);
+    // Generate a userId if not provided (which will be the same as the document ID)
+    // This will be stored both in the session and in the database for persistence
+    const memberData = { ...result.data };
+    
+    const member = await storage.addTeamMember(memberData);
+    
+    // Make sure member has an ID
+    if (!member || typeof member.id !== 'string') {
+      res.status(500).json({ error: "Failed to create team member" });
+      return;
+    }
+    
+    // Update the member to include its own ID as the userId
+    await storage.updateTeamMemberUserId(member.id, member.id);
+    
+    // Set the userId in the session as well for current session
     req.session.userId = member.id;
-    res.json(member);
+    
+    // Return the updated member with userId
+    const updatedMember = await storage.getTeamMemberById(member.id);
+    
+    if (!updatedMember) {
+      res.status(500).json({ error: "Failed to retrieve updated team member" });
+      return;
+    }
+    
+    res.json(updatedMember);
   });
 
   app.delete("/api/members/:id", async (req, res) => {

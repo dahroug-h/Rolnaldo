@@ -12,6 +12,7 @@ export const teamMemberSchema = z.object({
   whatsappNumber: z.string(),
   projectId: z.string(),
   sectionNumber: z.number().nullable().optional(),
+  userId: z.string().optional(), // Store the user's unique ID for persistent identification
 });
 
 // Define insert schemas
@@ -49,6 +50,7 @@ export const insertTeamMemberSchema = z.object({
     ),
   projectId: z.string(),
   sectionNumber: z.number().min(1).max(4).optional(),
+  userId: z.string().optional(), // Allow userId to be provided during member creation
 });
 
 export type Project = z.infer<typeof projectSchema>;

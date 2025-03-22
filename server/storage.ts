@@ -23,6 +23,7 @@ function mapMongoTeamMember(doc: any): TeamMember {
     whatsappNumber: doc.whatsappNumber,
     projectId: doc.projectId,
     sectionNumber: doc.sectionNumber || null,
+    userId: doc.userId || doc._id.toString(), // Use userId if available, otherwise use document ID
   };
 }
 
@@ -35,6 +36,7 @@ export interface IStorage {
   getTeamMemberById(id: string): Promise<TeamMember | undefined>;
   addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
   removeTeamMember(id: string): Promise<void>;
+  updateTeamMemberUserId(id: string, userId: string): Promise<void>;
   connect(): Promise<void>;
   close(): Promise<void>;
 }
@@ -150,6 +152,18 @@ export class MongoDBStorage implements IStorage {
       await this.db.collection("team_members").deleteOne({ _id: new ObjectId(id) });
     } catch (error) {
       console.error(`Error removing team member: ${id}`, error);
+      throw error;
+    }
+  }
+  
+  async updateTeamMemberUserId(id: string, userId: string): Promise<void> {
+    try {
+      await this.db.collection("team_members").updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { userId: userId } }
+      );
+    } catch (error) {
+      console.error(`Error updating team member userId: ${id}`, error);
       throw error;
     }
   }
