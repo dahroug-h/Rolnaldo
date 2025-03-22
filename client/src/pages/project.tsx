@@ -42,7 +42,7 @@ export default function ProjectPage() {
 
   const isAdmin = adminStatus?.isAdmin || false;
   const currentUserId = meData?.userId || null;
-  
+
   // Check if user is logged in (has a userId) and if they're a member of this project
   const isUserLoggedIn = !!currentUserId;
   const isUserMember = isUserLoggedIn && members.some(
@@ -58,34 +58,32 @@ export default function ProjectPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link href="/">
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="hover:bg-primary/10 transition-colors"
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
-            </Link>
-            <span className="text-xl font-semibold">By EECE 27</span>
-          </div>
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/">
+            <Button 
+              variant="outline" 
+              size="lg"
+              className="hover:bg-primary/10 transition-colors"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+          </Link>
+          <span className="text-xl font-semibold">By EECE 27</span>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 flex-grow">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+      <main className="container mx-auto px-4 py-4 sm:py-8 flex-grow">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-8 mb-6">
+          <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             {project.name}
           </h1>
-          <Button onClick={() => setShowJoinForm(true)}>
+          <Button onClick={() => setShowJoinForm(true)} className="w-full sm:w-auto">
             <Users2 className="mr-2 h-5 w-5" />
             Join Team
           </Button>
         </div>
 
-        
+
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -97,10 +95,10 @@ export default function ProjectPage() {
           />
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-4 sm:gap-6">
           {filteredMembers.map((member) => (
             <Card key={member.id} className="w-full">
-              <CardContent className="flex items-center justify-between p-6">
+              <CardContent className="flex items-center justify-between p-4 sm:p-6">
                 <div className="flex items-center space-x-4">
                   <div className="bg-primary/10 p-3 rounded-full">
                     <Users2 className="h-8 w-8 text-primary" />
@@ -152,7 +150,7 @@ export default function ProjectPage() {
                           Remove Me
                         </DropdownMenuItem>
                       )}
-                      
+
                       {/* Admin can remove anyone except themselves (they should use Remove Me) */}
                       {isAdmin && currentUserId && currentUserId !== member.id && currentUserId !== member.userId && (
                         <DropdownMenuItem
