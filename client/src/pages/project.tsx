@@ -29,6 +29,7 @@ export default function ProjectPage() {
   const { data: members = [], refetch: refetchMembers } = useQuery<TeamMember[]>({
     queryKey: [`/api/projects/${projectId}/members`],
     enabled: !!projectId,
+    refetchInterval: 5000, // Auto-refresh every 5 seconds
   });
 
   const { data: adminStatus } = useQuery<{ isAdmin: boolean }>({

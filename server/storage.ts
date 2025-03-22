@@ -162,6 +162,7 @@ export class MongoDBStorage implements IStorage {
         { _id: new ObjectId(id) },
         { $set: { userId: userId } }
       );
+      console.log(`Updated team member ${id} with userId: ${userId}`);
     } catch (error) {
       console.error(`Error updating team member userId: ${id}`, error);
       throw error;

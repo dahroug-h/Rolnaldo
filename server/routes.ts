@@ -120,10 +120,10 @@ export async function registerRoutes(app: Express) {
       return;
     }
     
-    // Update the member to include its own ID as the userId
+    // Update the member to include its own ID as the userId for persistence
     await storage.updateTeamMemberUserId(member.id, member.id);
     
-    // Set the userId in the session as well for current session
+    // Store the userId in the session for the current user
     req.session.userId = member.id;
     
     // Return the updated member with userId
@@ -146,32 +146,31 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      // Allow deletion if user is admin or if they are the member themselves
-      // Check both the member.id and member.userId for matching with session.userId
-      const canRemoveSelf = req.session.userId === member.id || 
-                           (member.userId && req.session.userId === member.userId);
-                           
-      if (!req.session.isAdmin && (!req.session.userId || !canRemoveSelf)) {
-        res.status(403).json({ error: "You can only remove yourself from teams or be an admin" });
+      // Check if user has permission to remove this member
+      // 1. Admin can remove any member
+      // 2. Regular user can only remove themselves
+      const isCurrentUser = 
+        req.session.userId === member.id || 
+        (member.userId && req.session.userId === member.userId);
+      
+      if (!req.session.isAdmin && (!req.session.userId || !isCurrentUser)) {
+        res.status(403).json({ 
+          error: "You can only remove yourself from teams. Admins can remove anyone." 
+        });
         return;
       }
 
+      // Remove the member from the database
       await storage.removeTeamMember(id);
 
-      // Only destroy session if the user removed themselves (not admin)
-      const isRemovingSelf = req.session.userId === member.id || 
-                           (member.userId && req.session.userId === member.userId);
-                           
-      if (!req.session.isAdmin && isRemovingSelf) {
-        req.session.destroy(err => {
-          if (err) {
-            console.error('Error destroying session:', err);
-          }
-        });
+      // Only clear the session if the user removed themselves and is not an admin
+      if (!req.session.isAdmin && isCurrentUser) {
+        req.session.userId = null; // Keep the session but clear the userId
       }
 
       res.status(204).send();
     } catch (error) {
+      console.error("Error removing team member:", error);
       res.status(400).json({ error: "Invalid member ID format" });
     }
   });
