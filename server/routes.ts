@@ -106,14 +106,22 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    // Step 1: Check for existing membership by WhatsApp number
+    // Check for existing membership by WhatsApp number or name for this project
     const existingMembers = await storage.getTeamMembers(result.data.projectId);
-    const hasExisting = existingMembers.some(
+    const hasExistingNumber = existingMembers.some(
       member => member.whatsappNumber === result.data.whatsappNumber
     );
+    const hasExistingName = existingMembers.some(
+      member => member.name.toLowerCase() === result.data.name.toLowerCase()
+    );
 
-    if (hasExisting) {
-      res.status(400).json({ error: "You are already a member of this project" });
+    if (hasExistingNumber) {
+      res.status(400).json({ error: "This WhatsApp number is already registered for this project" });
+      return;
+    }
+
+    if (hasExistingName) {
+      res.status(400).json({ error: "This name is already taken for this project" });
       return;
     }
 

@@ -85,15 +85,7 @@ export default function ProjectPage() {
           </Button>
         </div>
 
-        {/* User status message */}
-        {isUserLoggedIn && (
-          <div className={`px-4 py-3 mb-6 rounded-md border ${isUserMember ? 'bg-green-50 border-green-200 text-green-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-            {isUserMember 
-              ? "You're a registered member of this project. Use 'Remove Me' to leave the project."
-              : "You're logged in but not a member of this project. Use 'Join Team' to participate."
-            }
-          </div>
-        )}
+        
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
