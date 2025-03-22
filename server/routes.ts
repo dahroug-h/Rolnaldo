@@ -2,10 +2,11 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema, insertTeamMemberSchema } from "@shared/schema";
+import { ObjectId } from "mongodb";
 
 declare module 'express-session' {
   interface SessionData {
-    userId?: number;
+    userId?: string;
     isAdmin?: boolean;
   }
 }
@@ -42,19 +43,27 @@ export async function registerRoutes(app: Express) {
   });
 
   app.get("/api/projects/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const project = await storage.getProjectById(id);
-    if (!project) {
-      res.status(404).json({ error: "Project not found" });
-      return;
+    const id = req.params.id;
+    try {
+      const project = await storage.getProjectById(id);
+      if (!project) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+      res.json(project);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid project ID format" });
     }
-    res.json(project);
   });
 
   app.get("/api/projects/:id/members", async (req, res) => {
-    const projectId = parseInt(req.params.id);
-    const members = await storage.getTeamMembers(projectId);
-    res.json(members);
+    const projectId = req.params.id;
+    try {
+      const members = await storage.getTeamMembers(projectId);
+      res.json(members);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid project ID format" });
+    }
   });
 
   app.post("/api/projects", requireAdmin, async (req, res) => {
@@ -68,9 +77,13 @@ export async function registerRoutes(app: Express) {
   });
 
   app.delete("/api/projects/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
-    await storage.removeProject(id);
-    res.status(204).send();
+    const id = req.params.id;
+    try {
+      await storage.removeProject(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ error: "Invalid project ID format" });
+    }
   });
 
   app.post("/api/members", async (req, res) => {
@@ -97,31 +110,35 @@ export async function registerRoutes(app: Express) {
   });
 
   app.delete("/api/members/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const member = await storage.getTeamMemberById(id);
-    if (!member) {
-      res.status(404).json({ error: "Member not found" });
-      return;
+    const id = req.params.id;
+    try {
+      const member = await storage.getTeamMemberById(id);
+      if (!member) {
+        res.status(404).json({ error: "Member not found" });
+        return;
+      }
+
+      // Allow deletion only if user is admin or the member themselves
+      if (!req.session.isAdmin && (!req.session.userId || req.session.userId !== member.id)) {
+        res.status(403).json({ error: "You can only remove yourself from teams or be an admin" });
+        return;
+      }
+
+      await storage.removeTeamMember(id);
+
+      // Only destroy session if the user removed themselves (not admin)
+      if (!req.session.isAdmin && req.session.userId === member.id) {
+        req.session.destroy(err => {
+          if (err) {
+            console.error('Error destroying session:', err);
+          }
+        });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ error: "Invalid member ID format" });
     }
-
-    // Allow deletion only if user is admin or the member themselves
-    if (!req.session.isAdmin && (!req.session.userId || req.session.userId !== member.id)) {
-      res.status(403).json({ error: "You can only remove yourself from teams or be an admin" });
-      return;
-    }
-
-    await storage.removeTeamMember(id);
-
-    // Only destroy session if the user removed themselves (not admin)
-    if (!req.session.isAdmin && req.session.userId === member.id) {
-      req.session.destroy(err => {
-        if (err) {
-          console.error('Error destroying session:', err);
-        }
-      });
-    }
-
-    res.status(204).send();
   });
 
   return createServer(app);

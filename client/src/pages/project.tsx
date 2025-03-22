@@ -18,7 +18,7 @@ import { SiLinkedin } from "react-icons/si";
 
 export default function ProjectPage() {
   const [_, params] = useRoute("/project/:id");
-  const projectId = parseInt(params?.id || "0");
+  const projectId = params?.id || "";
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -26,16 +26,16 @@ export default function ProjectPage() {
     queryKey: [`/api/projects/${projectId}`],
   });
 
-  const { data: members = [] } = useQuery<TeamMember[]>({
+  const { data: members = [], refetch: refetchMembers } = useQuery<TeamMember[]>({
     queryKey: [`/api/projects/${projectId}/members`],
     enabled: !!projectId,
   });
 
-  const { data: adminStatus } = useQuery({
+  const { data: adminStatus } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/status"],
   });
 
-  const isAdmin = adminStatus?.isAdmin;
+  const isAdmin = adminStatus?.isAdmin || false;
 
   if (!project) return <div>Project not found</div>;
 
@@ -62,7 +62,7 @@ export default function ProjectPage() {
           <Button
             variant="outline"
             size="lg"
-            onClick={() => window.location.reload()}
+            onClick={() => refetchMembers()}
             className="hover:bg-primary/10 transition-colors"
           >
             <RefreshCw className="h-6 w-6" />
@@ -126,17 +126,23 @@ export default function ProjectPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {(isAdmin || member.userId === adminStatus?.userId) && (
+                      {isAdmin && (
                         <DropdownMenuItem
                           className="text-destructive"
-                          onClick={() => {
-                            const response = fetch(`/api/members/${member.id}`, {
-                              method: 'DELETE',
-                              credentials: 'include'
-                            });
+                          onClick={async () => {
+                            try {
+                              await fetch(`/api/members/${member.id}`, {
+                                method: 'DELETE',
+                                credentials: 'include'
+                              });
+                              // Refresh data after successful removal
+                              refetchMembers();
+                            } catch (error) {
+                              console.error("Failed to remove member:", error);
+                            }
                           }}
                         >
-                          Remove me from team
+                          Remove from team
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>

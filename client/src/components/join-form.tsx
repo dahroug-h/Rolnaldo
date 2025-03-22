@@ -34,7 +34,7 @@ type JoinFormProps = {
 type FormData = {
   name: string;
   whatsappNumber: string;
-  projectId: number;
+  projectId: string;
   sectionNumber?: number;
 };
 
@@ -56,10 +56,13 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
       await apiRequest("POST", "/api/members", values);
     },
     onSuccess: () => {
+      // Invalidate both the members list and the specific project's members
       queryClient.invalidateQueries({ queryKey: ["/api/projects", "members"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/members`] });
+      
       toast({
         title: "Success",
-        description: "You have joined the team!",
+        description: "You have joined the team successfully!",
       });
       onClose();
     },
