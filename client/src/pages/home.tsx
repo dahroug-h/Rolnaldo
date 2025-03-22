@@ -4,7 +4,7 @@ import ProjectList from "@/components/project-list";
 import SearchFilter from "@/components/search-filter";
 import { type Project } from "@shared/schema";
 import AdminPanel from "@/components/admin-panel";
-import { SiLinkedin } from "react-icons/si";
+
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,19 +50,6 @@ export default function Home() {
           </div>
         </div>
       </main>
-
-      <footer className="border-t py-4 text-center text-sm text-muted-foreground">
-        <div className="container mx-auto px-4 flex items-center justify-center space-x-4">
-          <a
-            href="https://www.linkedin.com/in/hassan-dahroug-736ab7285/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:text-primary/80"
-          >
-            <SiLinkedin className="h-5 w-5" />
-          </a>
-        </div>
-      </footer>
     </div>
   );
 }
