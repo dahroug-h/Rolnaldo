@@ -15,7 +15,7 @@ import { useState } from "react";
 import { type Project, type TeamMember } from "@shared/schema";
 import { Users2, MessageCircle, ArrowLeft, MoreVertical, Search } from "lucide-react";
 import { SiLinkedin } from "react-icons/si";
-import { getFingerprint } from "@/lib/fingerprint";
+import { getDeviceId } from "@/lib/deviceId";
 
 export default function ProjectPage() {
   const [_, params] = useRoute("/project/:id");
@@ -140,12 +140,13 @@ export default function ProjectPage() {
                           className="text-destructive"
                           onClick={async () => {
                             try {
-                              const fingerprint = await getFingerprint();
+                              // Get the device ID for authentication
+                              const deviceId = await getDeviceId();
                               await fetch(`/api/members/${member.id}`, {
                                 method: 'DELETE',
                                 credentials: 'include',
                                 headers: {
-                                  'X-Fingerprint': fingerprint
+                                  'X-Device-ID': deviceId
                                 }
                               });
                               // Refresh data after successful removal
@@ -165,13 +166,10 @@ export default function ProjectPage() {
                           className="text-destructive"
                           onClick={async () => {
                             try {
-                              const fingerprint = await getFingerprint();
+                              // Admins don't need to provide device ID
                               await fetch(`/api/members/${member.id}`, {
                                 method: 'DELETE',
-                                credentials: 'include',
-                                headers: {
-                                  'X-Fingerprint': fingerprint
-                                }
+                                credentials: 'include'
                               });
                               // Refresh data after successful removal
                               refetchMembers();
