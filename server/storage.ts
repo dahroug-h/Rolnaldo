@@ -24,6 +24,7 @@ function mapMongoTeamMember(doc: any): TeamMember {
     projectId: doc.projectId,
     sectionNumber: doc.sectionNumber || null,
     userId: doc.userId || doc._id.toString(), // Use userId if available, otherwise use document ID
+    deviceId: doc.deviceId, // Include device ID for client-side verification
   };
 }
 
