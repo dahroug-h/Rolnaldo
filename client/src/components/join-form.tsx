@@ -53,7 +53,8 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
-      await apiRequest("POST", "/api/members", values);
+      const fingerprint = await getFingerprint(); // Added fingerprint retrieval
+      await apiRequest("POST", "/api/members", { ...values, fingerprint }); // Send fingerprint with the request
     },
     onSuccess: () => {
       // Invalidate both the members list and the specific project's members
@@ -149,4 +150,14 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
       </Form>
     </>
   );
+}
+
+// Placeholder function - replace with actual fingerprint generation logic
+async function getFingerprint() {
+  // Implement your fingerprint generation logic here.  This is a placeholder.
+  //  This might involve using a library to generate a fingerprint from browser data.
+  // Example (replace with your actual implementation):
+  // const fingerprint = await someFingerprintLibrary.generateFingerprint();
+  // return fingerprint;
+  return "placeholder_fingerprint"; // Replace with actual fingerprint data
 }

@@ -120,7 +120,13 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    const memberData = { ...result.data };
+    const fingerprint = req.headers['x-fingerprint'] as string;
+    if (!fingerprint) {
+      res.status(400).json({ error: "Fingerprint is required" });
+      return;
+    }
+
+    const memberData = { ...result.data, fingerprint };
     const member = await storage.addTeamMember(memberData);
 
     if (!member || typeof member.id !== 'string') {
