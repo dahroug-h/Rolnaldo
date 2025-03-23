@@ -25,7 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { type Project, insertTeamMemberSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import FingerprintJS from "@fingerprintjs/fingerprintjs";
+import { getDeviceId } from "@/lib/deviceId";
 
 type JoinFormProps = {
   project: Project;
@@ -54,12 +54,12 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
-      const fp = await FingerprintJS.load();
-      const result = await fp.get();
+      // Get or create a persistent device ID
+      const deviceId = await getDeviceId();
       
       await apiRequest("POST", "/api/members", {
         ...values,
-        fingerprint: result.visitorId
+        deviceId // Send the device ID to identify this user
       });
     },
     onSuccess: () => {
@@ -68,7 +68,7 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/members`] });
 
       toast({
-        description: "Joined project",
+        description: "Successfully joined project",
         duration: 2000,
       });
       onClose();
@@ -158,4 +158,4 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
   );
 }
 
-// Removed placeholder function; FingerprintJS is now used directly in the mutation.
+// Using device ID for secure user identification without requiring login

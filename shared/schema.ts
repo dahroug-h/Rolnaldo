@@ -52,6 +52,7 @@ export const insertTeamMemberSchema = z.object({
   projectId: z.string(),
   sectionNumber: z.number().min(1).max(4).optional(),
   userId: z.string().optional(), // Allow userId to be provided during member creation
+  deviceId: z.string().optional(), // Device ID for secure user identification
 });
 
 export type Project = z.infer<typeof projectSchema>;

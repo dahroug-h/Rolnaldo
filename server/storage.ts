@@ -140,12 +140,13 @@ export class MongoDBStorage implements IStorage {
     const result = await this.db.collection("team_members").insertOne({
       ...member,
       sectionNumber: member.sectionNumber || null,
-      fingerprint: member.fingerprint // Store the FingerprintJS visitor ID
+      deviceId: member.deviceId // Store the device ID for user identification
     });
     return {
       id: result.insertedId.toString(),
       ...member,
-      sectionNumber: member.sectionNumber || null
+      sectionNumber: member.sectionNumber || null,
+      deviceId: member.deviceId
     };
   }
 

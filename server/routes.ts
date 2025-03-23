@@ -120,8 +120,8 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    if (!req.body.fingerprint) {
-      res.status(400).json({ error: "Fingerprint is required" });
+    if (!req.body.deviceId) {
+      res.status(400).json({ error: "Device ID is required for identification" });
       return;
     }
 
@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express) {
     }
 
     await storage.updateTeamMemberUserId(member.id, member.id);
-    console.log(`User registered with ID: ${member.id}`);
+    console.log(`User registered with ID: ${member.id}, Device ID: ${member.deviceId}`);
     req.session.userId = member.id;
     const updatedMember = await storage.getTeamMemberById(member.id);
 
@@ -167,8 +167,9 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      const requestFingerprint = req.headers['x-fingerprint'] as string;
-      if (!req.session.isAdmin && member.fingerprint && member.fingerprint !== requestFingerprint) {
+      // Verify device ID from headers for additional security
+      const requestDeviceId = req.headers['x-device-id'] as string;
+      if (!req.session.isAdmin && member.deviceId && member.deviceId !== requestDeviceId) {
         return res.status(403).json({ 
           error: "Unauthorized: Can only remove your own registration"
         });
