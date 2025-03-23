@@ -17,22 +17,24 @@ export default function AdminPanel() {
   const [password, setPassword] = useState("");
   const { toast } = useToast();
 
-  const { data: adminStatus } = useQuery({
-    queryKey: ["/api/admin/status"],
+  const { data: adminStatus, refetch: refetchAdminStatus } = useQuery({
+    queryKey: ["adminStatus"],
     queryFn: async () => {
       const res = await fetch("/api/admin/status");
       const data = await res.json();
       setIsLoggedIn(data.isAdmin);
       return data;
     },
+    staleTime: Infinity,
+    cacheTime: Infinity
   });
 
   const loginMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/admin/login", { password });
     },
-    onSuccess: () => {
-      setIsLoggedIn(true);
+    onSuccess: async () => {
+      await refetchAdminStatus();
       setPassword("");
       toast({
         title: "Success",
