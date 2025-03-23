@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 
 // Configuration
 const PROJECT_ID = "67e023cbb3c9a0c455f9da78"; // Target project ID
-const TOTAL_MEMBERS = 50; // Number of members to add (reduced for initial testing)
+const TOTAL_MEMBERS = 200; // Number of members to add as requested
 const BASE_URL = "http://localhost:5000"; // API URL (confirmed from server logs)
 
 // Generate a random Egyptian phone number
@@ -45,8 +45,9 @@ function generateDeviceId() {
   return uuidv4();
 }
 
-// Add a single team member
-async function addTeamMember(index) {
+// Add a single team member with retry capability
+async function addTeamMember(index, retryCount = 0) {
+  const MAX_RETRIES = 3;
   const member = {
     name: generateName(index),
     whatsappNumber: generateEgyptianPhoneNumber(),
@@ -62,6 +63,7 @@ async function addTeamMember(index) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(member),
+      timeout: 10000, // 10 second timeout
     });
     
     if (response.ok) {
@@ -71,10 +73,26 @@ async function addTeamMember(index) {
     } else {
       const errorText = await response.text();
       console.error(`Failed to add member ${index+1}/${TOTAL_MEMBERS}: ${errorText}`);
+      
+      // Retry logic for server errors
+      if (retryCount < MAX_RETRIES) {
+        console.log(`Retrying member ${index+1}/${TOTAL_MEMBERS} (attempt ${retryCount+1}/${MAX_RETRIES})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        return addTeamMember(index, retryCount + 1);
+      }
+      
       return null;
     }
   } catch (error) {
     console.error(`Error adding member ${index+1}/${TOTAL_MEMBERS}:`, error);
+    
+    // Retry logic for network errors
+    if (retryCount < MAX_RETRIES) {
+      console.log(`Retrying member ${index+1}/${TOTAL_MEMBERS} (attempt ${retryCount+1}/${MAX_RETRIES})...`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+      return addTeamMember(index, retryCount + 1);
+    }
+    
     return null;
   }
 }
@@ -86,7 +104,8 @@ async function addManyMembers() {
   
   const startTime = Date.now();
   let successCount = 0;
-  const BATCH_SIZE = 5; // Process in smaller batches to reduce server load
+  let failureCount = 0;
+  const BATCH_SIZE = 8; // Increased batch size for faster processing
   
   // Process members in batches to make the script more robust
   for (let batchStart = 0; batchStart < TOTAL_MEMBERS; batchStart += BATCH_SIZE) {
@@ -102,9 +121,15 @@ async function addManyMembers() {
         setTimeout(async () => {
           try {
             const result = await addTeamMember(i);
-            if (result) successCount++;
+            if (result) {
+              successCount++;
+            } else {
+              failureCount++;
+              console.error(`Failed to add member ${i+1}/${TOTAL_MEMBERS}`);
+            }
           } catch (error) {
-            console.error(`Error in batch processing for member ${i}:`, error);
+            failureCount++;
+            console.error(`Error in batch processing for member ${i+1}/${TOTAL_MEMBERS}:`, error);
           }
           resolve();
         }, delay);
@@ -131,8 +156,11 @@ async function addManyMembers() {
   
   console.log(`\nCompleted adding members!`);
   console.log(`Successfully added: ${successCount}/${TOTAL_MEMBERS} members`);
+  console.log(`Failed: ${failureCount}/${TOTAL_MEMBERS} members`);
+  console.log(`Success rate: ${(successCount / TOTAL_MEMBERS * 100).toFixed(1)}%`);
   console.log(`Time taken: ${duration.toFixed(2)} seconds`);
   console.log(`Average time per member: ${(duration / TOTAL_MEMBERS).toFixed(2)} seconds`);
+  console.log(`Members per second: ${(successCount / duration).toFixed(2)}`);
 }
 
 // Run the script
