@@ -58,10 +58,9 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
       const result = await fp.get();
       const fingerprint = result.visitorId;
       
-      await apiRequest("POST", "/api/members", values, {
-        headers: {
-          'X-Fingerprint': fingerprint
-        }
+      await apiRequest("POST", "/api/members", {
+        ...values,
+        fingerprint
       });
     },
     onSuccess: () => {
