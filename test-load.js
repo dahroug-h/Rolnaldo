@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 
 // Configuration
 const PROJECT_ID = "67e023cbb3c9a0c455f9da78"; // Target project ID
-const TOTAL_MEMBERS = 200; // Number of members to add
+const TOTAL_MEMBERS = 50; // Number of members to add (reduced for initial testing)
 const BASE_URL = "http://localhost:5000"; // API URL (confirmed from server logs)
 
 // Generate a random Egyptian phone number
@@ -86,14 +86,44 @@ async function addManyMembers() {
   
   const startTime = Date.now();
   let successCount = 0;
+  const BATCH_SIZE = 5; // Process in smaller batches to reduce server load
   
-  // Add members one at a time to avoid rate limiting and server overload
-  for (let i = 0; i < TOTAL_MEMBERS; i++) {
-    const result = await addTeamMember(i);
-    if (result) successCount++;
+  // Process members in batches to make the script more robust
+  for (let batchStart = 0; batchStart < TOTAL_MEMBERS; batchStart += BATCH_SIZE) {
+    const batchEnd = Math.min(batchStart + BATCH_SIZE, TOTAL_MEMBERS);
+    console.log(`Processing batch ${batchStart/BATCH_SIZE + 1}: members ${batchStart+1}-${batchEnd}`);
     
-    // Small delay to prevent overwhelming the server
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Process a batch of members concurrently
+    const promises = [];
+    for (let i = batchStart; i < batchEnd; i++) {
+      // Add a small staggered delay to prevent overwhelming the server
+      const delay = (i - batchStart) * 100;
+      const promise = new Promise(resolve => {
+        setTimeout(async () => {
+          try {
+            const result = await addTeamMember(i);
+            if (result) successCount++;
+          } catch (error) {
+            console.error(`Error in batch processing for member ${i}:`, error);
+          }
+          resolve();
+        }, delay);
+      });
+      promises.push(promise);
+    }
+    
+    // Wait for the current batch to complete
+    await Promise.all(promises);
+    
+    // Report progress after each batch
+    const currentTime = Date.now();
+    const elapsedSeconds = (currentTime - startTime) / 1000;
+    const percentComplete = ((batchEnd / TOTAL_MEMBERS) * 100).toFixed(1);
+    console.log(`Progress: ${percentComplete}% complete (${batchEnd}/${TOTAL_MEMBERS})`);
+    console.log(`Time elapsed: ${elapsedSeconds.toFixed(1)} seconds`);
+    
+    // Short pause between batches to let the server breathe
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
   
   const endTime = Date.now();
