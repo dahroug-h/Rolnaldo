@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import JoinForm from "@/components/join-form";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { type Project, type TeamMember } from "@shared/schema";
 import { Users2, MessageCircle, ArrowLeft, MoreVertical, Search, Loader2 } from "lucide-react";
 import { SiLinkedin } from "react-icons/si";
@@ -26,9 +25,6 @@ export default function ProjectPage() {
   const projectId = params?.id || "";
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
-  const [membersCount, setMembersCount] = useState(0);
 
   const { data: project } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
@@ -45,33 +41,6 @@ export default function ProjectPage() {
     refetchInterval: 5000 // Auto-refresh every 5 seconds
   });
   
-  // Handle data changes using useEffect
-  useEffect(() => {
-    if (members && members.length !== membersCount) {
-      // Only update progress when members count has changed
-      setMembersCount(members.length);
-      
-      // Simulate progress completion on data load
-      setIsLoadingMembers(true);
-      setLoadingProgress(0);
-      const interval = setInterval(() => {
-        setLoadingProgress(prev => {
-          const newValue = prev + 5;
-          if (newValue >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-              setIsLoadingMembers(false);
-            }, 500); // Small delay before hiding loading indicators
-            return 100;
-          }
-          return newValue;
-        });
-      }, 50);
-      
-      return () => clearInterval(interval);
-    }
-  }, [members, membersCount]);
-
   const { data: adminStatus } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/status"],
     staleTime: Infinity,
@@ -81,25 +50,6 @@ export default function ProjectPage() {
   const { data: meData } = useQuery<{ userId: string | null }>({
     queryKey: ["/api/me"],
   });
-
-  // Reset loading state when component mounts or when projectId changes
-  useEffect(() => {
-    if (projectId) {
-      setIsLoadingMembers(true);
-      setLoadingProgress(0);
-      
-      // Start progress animation
-      const interval = setInterval(() => {
-        setLoadingProgress(prev => {
-          // Progress gets to 70% and then waits for actual data
-          const newValue = prev + 2;
-          return newValue < 70 ? newValue : 70;
-        });
-      }, 50);
-      
-      return () => clearInterval(interval);
-    }
-  }, [projectId]);
 
   const isAdmin = adminStatus?.isAdmin || false;
   const currentUserId = meData?.userId || null;
@@ -116,7 +66,7 @@ export default function ProjectPage() {
     member.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  const isLoading = membersLoading || membersRefetching || isLoadingMembers;
+  const isLoading = membersLoading || membersRefetching;
 
 
   return (
@@ -157,19 +107,15 @@ export default function ProjectPage() {
           />
         </div>
         
-        {/* Progress Bar for member loading */}
+        {/* Simple loading indicator */}
         {isLoading && (
-          <div className="mb-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  Loading team members...
-                </p>
-              </div>
-              <p className="text-sm font-medium">{loadingProgress}%</p>
+          <div className="mb-6">
+            <div className="flex items-center space-x-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">
+                Loading team members...
+              </p>
             </div>
-            <Progress value={loadingProgress} className="h-2" />
           </div>
         )}
         
