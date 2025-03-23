@@ -15,6 +15,7 @@ import { useState } from "react";
 import { type Project, type TeamMember } from "@shared/schema";
 import { Users2, MessageCircle, ArrowLeft, MoreVertical, Search } from "lucide-react";
 import { SiLinkedin } from "react-icons/si";
+import { getFingerprint } from "@/lib/fingerprint";
 
 export default function ProjectPage() {
   const [_, params] = useRoute("/project/:id");
@@ -35,7 +36,7 @@ export default function ProjectPage() {
   const { data: adminStatus } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/status"],
     staleTime: Infinity,
-    cacheTime: Infinity,
+    gcTime: Infinity, // replaced cacheTime with gcTime which is the new name in React Query v5
   });
 
   const { data: meData } = useQuery<{ userId: string | null }>({
@@ -56,12 +57,6 @@ export default function ProjectPage() {
   const filteredMembers = members.filter((member) =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const getFingerprint = async () => {
-    // Replace with actual FingerprintJS implementation
-    // This is a placeholder and needs to be replaced with a proper FingerprintJS integration
-    return 'placeholder_fingerprint';
-  };
 
 
   return (
