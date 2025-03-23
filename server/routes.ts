@@ -141,49 +141,6 @@ export async function registerRoutes(app: Express) {
     res.json(updatedMember);
   });
 
-  // Placeholder for rpName, rpID, and origin.  These need to be defined appropriately.
-  const rpName = "YourAppName";
-  const rpID = "your.app.id";
-  const origin = "http://localhost:3000"; // Replace with your actual origin
-
-  app.post("/api/members/:id/webauthn/register", async (req, res) => {
-    const member = await storage.getTeamMemberById(req.params.id);
-    if (!member || member.userId !== req.session.userId) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    const options = await generateRegistrationOptions({ //generateRegistrationOptions is not defined
-      rpName,
-      rpID,
-      userID: member.id,
-      userName: member.name,
-      attestationType: 'none'
-    });
-
-    req.session.currentChallenge = options.challenge;
-    res.json(options);
-  });
-
-  app.post("/api/members/:id/webauthn/verify", async (req, res) => {
-    const member = await storage.getTeamMemberById(req.params.id);
-    if (!member || member.userId !== req.session.userId) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    const verification = await verifyRegistrationResponse({ //verifyRegistrationResponse is not defined
-      credential: req.body,
-      expectedChallenge: req.session.currentChallenge,
-      expectedOrigin: origin,
-      expectedRPID: rpID,
-    });
-
-    await storage.updateTeamMemberUserId(member.id, member.id, {
-      credentialID: verification.registrationInfo?.credentialID.toString('base64'),
-      credentialPublicKey: verification.registrationInfo?.credentialPublicKey.toString('base64')
-    });
-
-    res.json({ verified: true });
-  });
 
   app.delete("/api/members/:id", async (req, res) => {
     const id = req.params.id;
@@ -205,19 +162,10 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      if (!req.session.isAdmin && member.credentialID) {
-        const options = await generateAuthenticationOptions({ //generateAuthenticationOptions is not defined
-          rpID,
-          allowCredentials: [{
-            id: Buffer.from(member.credentialID, 'base64'),
-            type: 'public-key'
-          }]
-        });
-
-        req.session.currentChallenge = options.challenge;
+      const requestFingerprint = req.headers['x-fingerprint'] as string;
+      if (!req.session.isAdmin && member.fingerprint && member.fingerprint !== requestFingerprint) {
         return res.status(403).json({ 
-          error: "WebAuthn verification required",
-          options 
+          error: "Unauthorized: Can only remove your own registration"
         });
       }
 

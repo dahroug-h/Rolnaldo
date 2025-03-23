@@ -57,6 +57,13 @@ export default function ProjectPage() {
     member.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const getFingerprint = async () => {
+    // Replace with actual FingerprintJS implementation
+    // This is a placeholder and needs to be replaced with a proper FingerprintJS integration
+    return 'placeholder_fingerprint';
+  };
+
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b">
@@ -138,9 +145,13 @@ export default function ProjectPage() {
                           className="text-destructive"
                           onClick={async () => {
                             try {
+                              const fingerprint = await getFingerprint();
                               await fetch(`/api/members/${member.id}`, {
                                 method: 'DELETE',
-                                credentials: 'include'
+                                credentials: 'include',
+                                headers: {
+                                  'X-Fingerprint': fingerprint
+                                }
                               });
                               // Refresh data after successful removal
                               refetchMembers();
@@ -159,9 +170,13 @@ export default function ProjectPage() {
                           className="text-destructive"
                           onClick={async () => {
                             try {
+                              const fingerprint = await getFingerprint();
                               await fetch(`/api/members/${member.id}`, {
                                 method: 'DELETE',
-                                credentials: 'include'
+                                credentials: 'include',
+                                headers: {
+                                  'X-Fingerprint': fingerprint
+                                }
                               });
                               // Refresh data after successful removal
                               refetchMembers();

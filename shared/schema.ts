@@ -13,8 +13,7 @@ export const teamMemberSchema = z.object({
   projectId: z.string(),
   sectionNumber: z.number().nullable().optional(),
   userId: z.string().optional(),
-  credentialID: z.string().nullable().optional(),
-  credentialPublicKey: z.string().nullable().optional(),
+  fingerprint: z.string().optional(),
 });
 
 // Define insert schemas
