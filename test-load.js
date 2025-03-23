@@ -1,11 +1,14 @@
-// Script to add 200 test members to a project for performance testing
+// Script to add 50 more members to a project and test the "Remove Me" feature
 import { v4 as uuidv4 } from 'uuid';
 import fetch from 'node-fetch';
+import fs from 'fs';
+import path from 'path';
 
 // Configuration
 const PROJECT_ID = "67e023cbb3c9a0c455f9da78"; // Target project ID
-const TOTAL_MEMBERS = 200; // Number of members to add as requested
+const TOTAL_MEMBERS = 50; // Number of members to add (50 more requested)
 const BASE_URL = "http://localhost:5000"; // API URL (confirmed from server logs)
+const DEVICE_IDS_FILE = './device-ids.json'; // File to save device IDs for testing
 
 // Generate a random Egyptian phone number
 function generateEgyptianPhoneNumber() {
@@ -45,15 +48,42 @@ function generateDeviceId() {
   return uuidv4();
 }
 
+// Save device IDs and member info to file for testing
+function saveDeviceInfo(members) {
+  try {
+    fs.writeFileSync(DEVICE_IDS_FILE, JSON.stringify(members, null, 2));
+    console.log(`Device IDs saved to ${DEVICE_IDS_FILE} for testing`);
+  } catch (error) {
+    console.error(`Failed to save device IDs: ${error.message}`);
+  }
+}
+
+// Load previously saved device IDs if they exist
+function loadDeviceInfo() {
+  try {
+    if (fs.existsSync(DEVICE_IDS_FILE)) {
+      const data = fs.readFileSync(DEVICE_IDS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error(`Failed to load device IDs: ${error.message}`);
+  }
+  return [];
+}
+
 // Add a single team member with retry capability
 async function addTeamMember(index, retryCount = 0) {
   const MAX_RETRIES = 3;
+  
+  // Generate a unique device ID
+  const deviceId = generateDeviceId();
+  
   const member = {
     name: generateName(index),
     whatsappNumber: generateEgyptianPhoneNumber(),
     projectId: PROJECT_ID,
     sectionNumber: generateSectionNumber(),
-    deviceId: generateDeviceId()
+    deviceId: deviceId
   };
   
   try {
@@ -69,7 +99,11 @@ async function addTeamMember(index, retryCount = 0) {
     if (response.ok) {
       const data = await response.json();
       console.log(`Member ${index+1}/${TOTAL_MEMBERS} added: ${member.name}`);
-      return data;
+      // Return both API data and the local member object with device ID
+      return { 
+        ...data, 
+        memberInfo: member 
+      };
     } else {
       const errorText = await response.text();
       console.error(`Failed to add member ${index+1}/${TOTAL_MEMBERS}: ${errorText}`);
@@ -97,6 +131,70 @@ async function addTeamMember(index, retryCount = 0) {
   }
 }
 
+// Test the "Remove Me" feature
+async function testRemoveMeFeature(members) {
+  if (members.length === 0) {
+    console.log("No members available to test removal");
+    return;
+  }
+  
+  console.log("\n--- Testing 'Remove Me' Feature ---");
+  
+  // Test case 1: Valid removal (using correct device ID)
+  const testMember = members[0];
+  console.log(`Testing valid removal for member: ${testMember.memberInfo.name}`);
+  
+  try {
+    // Attempt to remove the member using their device ID
+    const removeResponse = await fetch(`${BASE_URL}/api/members/${testMember.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Device-ID': testMember.memberInfo.deviceId
+      }
+    });
+    
+    if (removeResponse.ok) {
+      console.log(`✅ Success: Member removed successfully using their device ID`);
+    } else {
+      const errorText = await removeResponse.text();
+      console.log(`❌ Failed: Could not remove member with correct device ID: ${errorText}`);
+    }
+  } catch (error) {
+    console.error(`Error during valid removal test:`, error);
+  }
+  
+  // Test case 2: Invalid removal (using incorrect device ID)
+  if (members.length > 1) {
+    const testMember2 = members[1];
+    const fakeDeviceId = generateDeviceId(); // Generate a new random device ID
+    
+    console.log(`\nTesting invalid removal for member: ${testMember2.memberInfo.name}`);
+    console.log(`Using incorrect device ID: ${fakeDeviceId}`);
+    
+    try {
+      // Attempt to remove another member using an incorrect device ID
+      const removeResponse = await fetch(`${BASE_URL}/api/members/${testMember2.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-ID': fakeDeviceId
+        }
+      });
+      
+      if (!removeResponse.ok) {
+        console.log(`✅ Success: Security check prevented removal with incorrect device ID`);
+      } else {
+        console.log(`❌ Failed: Member was removed with incorrect device ID!`);
+      }
+    } catch (error) {
+      console.error(`Error during invalid removal test:`, error);
+    }
+  }
+  
+  console.log("--- 'Remove Me' Feature Tests Completed ---");
+}
+
 // Main function to add multiple members
 async function addManyMembers() {
   console.log(`Starting to add ${TOTAL_MEMBERS} test members to project ${PROJECT_ID}...`);
@@ -106,6 +204,9 @@ async function addManyMembers() {
   let successCount = 0;
   let failureCount = 0;
   const BATCH_SIZE = 8; // Increased batch size for faster processing
+  
+  // Array to store successfully added members with their device IDs
+  const addedMembers = [];
   
   // Process members in batches to make the script more robust
   for (let batchStart = 0; batchStart < TOTAL_MEMBERS; batchStart += BATCH_SIZE) {
@@ -123,6 +224,8 @@ async function addManyMembers() {
             const result = await addTeamMember(i);
             if (result) {
               successCount++;
+              // Add to our list of members
+              addedMembers.push(result);
             } else {
               failureCount++;
               console.error(`Failed to add member ${i+1}/${TOTAL_MEMBERS}`);
@@ -161,9 +264,49 @@ async function addManyMembers() {
   console.log(`Time taken: ${duration.toFixed(2)} seconds`);
   console.log(`Average time per member: ${(duration / TOTAL_MEMBERS).toFixed(2)} seconds`);
   console.log(`Members per second: ${(successCount / duration).toFixed(2)}`);
+  
+  // Save device IDs for testing
+  if (addedMembers.length > 0) {
+    saveDeviceInfo(addedMembers);
+    
+    // Test the "Remove Me" feature
+    await testRemoveMeFeature(addedMembers);
+  }
+  
+  return addedMembers;
+}
+
+// Function to run "Remove Me" testing with previously stored device IDs
+async function testPersistentRemoveMe() {
+  console.log("Testing 'Remove Me' feature with previously stored device IDs...");
+  
+  // Load device IDs from previous runs
+  const savedMembers = loadDeviceInfo();
+  
+  if (savedMembers && savedMembers.length > 0) {
+    console.log(`Found ${savedMembers.length} previously saved members for testing`);
+    await testRemoveMeFeature(savedMembers);
+  } else {
+    console.log("No previously saved device IDs found. Run addManyMembers() first.");
+  }
+}
+
+// Determine which mode to run (add members or test removal)
+async function main() {
+  const args = process.argv.slice(2);
+  
+  // Check if we should run in test mode
+  if (args.includes('--test-remove')) {
+    console.log("Running in test-only mode for the 'Remove Me' feature...");
+    await testPersistentRemoveMe();
+  } else {
+    // Default: add members and then test removal
+    console.log("Running in full mode: adding members and testing 'Remove Me' feature...");
+    await addManyMembers();
+  }
 }
 
 // Run the script
-addManyMembers().catch(error => {
+main().catch(error => {
   console.error("Script failed:", error);
 });

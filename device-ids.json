@@ -1,0 +1,24 @@
+[
+  {
+    "id": "67e0519775167c57a9737a92",
+    "name": "Karim Emad 10",
+    "memberInfo": {
+      "name": "Karim Emad 10",
+      "whatsappNumber": "+201234567890",
+      "projectId": "67e023cbb3c9a0c455f9da78",
+      "sectionNumber": 2,
+      "deviceId": "de43adbe-5d62-49b9-acfe-e8c083b38d2e"
+    }
+  },
+  {
+    "id": "67e0519775167c57a9737a93",
+    "name": "Aisha Sobhy 13",
+    "memberInfo": {
+      "name": "Aisha Sobhy 13",
+      "whatsappNumber": "+201987654321",
+      "projectId": "67e023cbb3c9a0c455f9da78",
+      "sectionNumber": 3,
+      "deviceId": "e4ba3458-a3a3-4b66-852f-59c6c7c180e7"
+    }
+  }
+]
