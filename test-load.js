@@ -6,7 +6,7 @@ import path from 'path';
 
 // Configuration
 const PROJECT_ID = "67e023cbb3c9a0c455f9da78"; // Target project ID
-const TOTAL_MEMBERS = 70; // Number of additional members to add (70 more as requested)
+const TOTAL_MEMBERS = 28; // Number of additional members to add (28 more to reach 210 total)
 const BASE_URL = "http://localhost:5000"; // API URL (confirmed from server logs)
 const DEVICE_IDS_FILE = './device-ids.json'; // File to save device IDs for testing
 
