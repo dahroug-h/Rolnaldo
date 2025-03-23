@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,27 +12,65 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import JoinForm from "@/components/join-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { type Project, type TeamMember } from "@shared/schema";
-import { Users2, MessageCircle, ArrowLeft, MoreVertical, Search } from "lucide-react";
+import { Users2, MessageCircle, ArrowLeft, MoreVertical, Search, Loader2 } from "lucide-react";
 import { SiLinkedin } from "react-icons/si";
 import { getDeviceId } from "@/lib/deviceId";
+
+// Type for our member query data
+type MemberData = TeamMember[];
 
 export default function ProjectPage() {
   const [_, params] = useRoute("/project/:id");
   const projectId = params?.id || "";
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [membersCount, setMembersCount] = useState(0);
 
   const { data: project } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
   });
 
-  const { data: members = [], refetch: refetchMembers } = useQuery<TeamMember[]>({
+  const { 
+    data: members = [], 
+    refetch: refetchMembers, 
+    isLoading: membersLoading,
+    isRefetching: membersRefetching
+  } = useQuery<TeamMember[]>({
     queryKey: [`/api/projects/${projectId}/members`],
     enabled: !!projectId,
-    refetchInterval: 5000, // Auto-refresh every 5 seconds
+    refetchInterval: 5000 // Auto-refresh every 5 seconds
   });
+  
+  // Handle data changes using useEffect
+  useEffect(() => {
+    if (members && members.length !== membersCount) {
+      // Only update progress when members count has changed
+      setMembersCount(members.length);
+      
+      // Simulate progress completion on data load
+      setIsLoadingMembers(true);
+      setLoadingProgress(0);
+      const interval = setInterval(() => {
+        setLoadingProgress(prev => {
+          const newValue = prev + 5;
+          if (newValue >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+              setIsLoadingMembers(false);
+            }, 500); // Small delay before hiding loading indicators
+            return 100;
+          }
+          return newValue;
+        });
+      }, 50);
+      
+      return () => clearInterval(interval);
+    }
+  }, [members, membersCount]);
 
   const { data: adminStatus } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/status"],
@@ -42,6 +81,25 @@ export default function ProjectPage() {
   const { data: meData } = useQuery<{ userId: string | null }>({
     queryKey: ["/api/me"],
   });
+
+  // Reset loading state when component mounts or when projectId changes
+  useEffect(() => {
+    if (projectId) {
+      setIsLoadingMembers(true);
+      setLoadingProgress(0);
+      
+      // Start progress animation
+      const interval = setInterval(() => {
+        setLoadingProgress(prev => {
+          // Progress gets to 70% and then waits for actual data
+          const newValue = prev + 2;
+          return newValue < 70 ? newValue : 70;
+        });
+      }, 50);
+      
+      return () => clearInterval(interval);
+    }
+  }, [projectId]);
 
   const isAdmin = adminStatus?.isAdmin || false;
   const currentUserId = meData?.userId || null;
@@ -57,6 +115,8 @@ export default function ProjectPage() {
   const filteredMembers = members.filter((member) =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
+  const isLoading = membersLoading || membersRefetching || isLoadingMembers;
 
 
   return (
@@ -87,8 +147,6 @@ export default function ProjectPage() {
           </Button>
         </div>
 
-
-
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -98,8 +156,67 @@ export default function ProjectPage() {
             className="pl-10"
           />
         </div>
+        
+        {/* Progress Bar for member loading */}
+        {isLoading && (
+          <div className="mb-6 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Loading team members...
+                </p>
+              </div>
+              <p className="text-sm font-medium">{loadingProgress}%</p>
+            </div>
+            <Progress value={loadingProgress} className="h-2" />
+          </div>
+        )}
+        
+        {/* Members Count */}
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {filteredMembers.length} members
+            {searchQuery && ` (filtered from ${members.length})`}
+          </p>
+        </div>
 
         <div className="grid gap-4 sm:gap-6">
+          {/* Skeleton loaders when loading */}
+          {isLoading && filteredMembers.length === 0 && 
+            Array(3).fill(0).map((_, index) => (
+              <Card key={`skeleton-${index}`} className="w-full bg-muted/30">
+                <CardContent className="flex items-center justify-between p-4 sm:p-6 h-24 animate-pulse">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-primary/10 p-3 rounded-full">
+                      <div className="h-8 w-8 bg-muted rounded-full" />
+                    </div>
+                    <div>
+                      <div className="h-5 w-32 bg-muted rounded mb-2" />
+                      <div className="h-3 w-20 bg-muted rounded" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          }
+          
+          {/* No results found */}
+          {!isLoading && filteredMembers.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No team members found</p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => setShowJoinForm(true)}
+              >
+                <Users2 className="mr-2 h-5 w-5" />
+                Join this team
+              </Button>
+            </div>
+          )}
+          
+          {/* Actual members list */}
           {filteredMembers.map((member) => (
             <Card key={member.id} className="w-full">
               <CardContent className="flex items-center justify-between p-4 sm:p-6">

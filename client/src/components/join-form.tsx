@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
 import {
   DialogHeader,
   DialogTitle,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -26,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { type Project, insertTeamMemberSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getDeviceId } from "@/lib/deviceId";
+import { Loader2 } from "lucide-react";
 
 type JoinFormProps = {
   project: Project;
@@ -41,6 +44,8 @@ type FormData = {
 
 export default function JoinForm({ project, onClose }: JoinFormProps) {
   const { toast } = useToast();
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(insertTeamMemberSchema),
@@ -54,6 +59,12 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
+      // Reset progress when starting
+      setLoadingProgress(0);
+      
+      // Start progress animation
+      startProgressAnimation();
+      
       // Get or create a persistent device ID
       const deviceId = await getDeviceId();
       
@@ -63,6 +74,10 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
       });
     },
     onSuccess: () => {
+      // Stop animation and set to 100%
+      stopProgressAnimation();
+      setLoadingProgress(100);
+      
       // Invalidate both the members list and the specific project's members
       queryClient.invalidateQueries({ queryKey: ["/api/projects", "members"] });
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/members`] });
@@ -71,9 +86,49 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
         description: "Successfully joined project",
         duration: 2000,
       });
-      onClose();
+      
+      // Small delay before closing to show completed progress
+      setTimeout(() => {
+        onClose();
+      }, 500);
     },
+    onError: (error) => {
+      // Stop animation
+      stopProgressAnimation();
+      
+      toast({
+        title: "Error joining project",
+        description: error instanceof Error ? error.message : "There was an error joining the project",
+        variant: "destructive",
+      });
+    }
   });
+  
+  // Helper functions for progress animation
+  const startProgressAnimation = () => {
+    // Clear any existing interval
+    stopProgressAnimation();
+    
+    // Start a new interval
+    progressIntervalRef.current = setInterval(() => {
+      setLoadingProgress(prev => {
+        const newValue = prev + 5;
+        return newValue < 90 ? newValue : 90;
+      });
+    }, 100);
+  };
+  
+  const stopProgressAnimation = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  };
+  
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => stopProgressAnimation();
+  }, []);
 
   return (
     <>
@@ -145,6 +200,21 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
             )}
           />
 
+          {mutation.isPending && (
+            <div className="space-y-2 my-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    Processing your request...
+                  </p>
+                </div>
+                <p className="text-sm font-medium">{loadingProgress}%</p>
+              </div>
+              <Progress value={loadingProgress} className="h-2" />
+            </div>
+          )}
+          
           <Button
             type="submit"
             className="w-full"
@@ -157,5 +227,3 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
     </>
   );
 }
-
-// Using device ID for secure user identification without requiring login
