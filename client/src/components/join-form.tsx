@@ -56,11 +56,10 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
     mutationFn: async (values: FormData) => {
       const fp = await FingerprintJS.load();
       const result = await fp.get();
-      const fingerprint = result.visitorId;
       
       await apiRequest("POST", "/api/members", {
         ...values,
-        fingerprint
+        fingerprint: result.visitorId
       });
     },
     onSuccess: () => {
