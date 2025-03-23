@@ -34,6 +34,8 @@ export default function ProjectPage() {
 
   const { data: adminStatus } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/status"],
+    staleTime: Infinity,
+    cacheTime: Infinity,
   });
 
   const { data: meData } = useQuery<{ userId: string | null }>({

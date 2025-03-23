@@ -37,8 +37,8 @@ export default function AdminPanel() {
       await refetchAdminStatus();
       setPassword("");
       toast({
-        title: "Success",
-        description: "Logged in as admin",
+        description: "Admin access granted",
+        duration: 2000,
       });
     },
   });

@@ -59,10 +59,10 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
       // Invalidate both the members list and the specific project's members
       queryClient.invalidateQueries({ queryKey: ["/api/projects", "members"] });
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/members`] });
-      
+
       toast({
-        title: "Success",
-        description: "You have joined the team successfully!",
+        description: "Joined project",
+        duration: 2000,
       });
       onClose();
     },
