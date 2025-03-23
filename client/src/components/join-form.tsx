@@ -54,12 +54,15 @@ export default function JoinForm({ project, onClose }: JoinFormProps) {
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
-      // Get browser fingerprint using FingerprintJS
       const fp = await FingerprintJS.load();
       const result = await fp.get();
-      const visitorId = result.visitorId;
-
-      await apiRequest("POST", "/api/members", { ...values, fingerprint: visitorId });
+      const fingerprint = result.visitorId;
+      
+      await apiRequest("POST", "/api/members", values, {
+        headers: {
+          'X-Fingerprint': fingerprint
+        }
+      });
     },
     onSuccess: () => {
       // Invalidate both the members list and the specific project's members
