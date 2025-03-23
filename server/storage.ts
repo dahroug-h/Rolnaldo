@@ -138,7 +138,9 @@ export class MongoDBStorage implements IStorage {
   async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
     const result = await this.db.collection("team_members").insertOne({
       ...member,
-      sectionNumber: member.sectionNumber || null
+      sectionNumber: member.sectionNumber || null,
+      credentialID: null,
+      credentialPublicKey: null
     });
     return {
       id: result.insertedId.toString(),

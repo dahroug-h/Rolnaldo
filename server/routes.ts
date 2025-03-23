@@ -8,6 +8,7 @@ declare module 'express-session' {
   interface SessionData {
     userId?: string;
     isAdmin?: boolean;
+    currentChallenge?: string;
   }
 }
 
@@ -36,17 +37,12 @@ export async function registerRoutes(app: Express) {
   app.get("/api/admin/status", (req, res) => {
     res.json({ isAdmin: !!req.session?.isAdmin });
   });
-  
+
   app.get("/api/me", async (req, res) => {
     const userId = req.session?.userId;
-    
-    // Step 3: When a user returns, we recognize them by their userId in the session
-    // This completes the workflow: 1) Register → 2) Login → 3) Return & Recognize 
     if (userId) {
-      // If we wanted to add more info, we could look up the user's data here
       console.log(`User recognized with ID: ${userId}`);
     }
-    
     res.json({ userId: userId || null });
   });
 
@@ -106,7 +102,6 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    // Check for existing membership by WhatsApp number or name for this project
     const existingMembers = await storage.getTeamMembers(result.data.projectId);
     const hasExistingNumber = existingMembers.some(
       member => member.whatsappNumber === result.data.whatsappNumber
@@ -125,35 +120,69 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    // Step 2: Prepare the member data to be stored
     const memberData = { ...result.data };
-    
-    // Step 3: Add the member to the database (without userId at first)
     const member = await storage.addTeamMember(memberData);
-    
-    // Make sure member has an ID
+
     if (!member || typeof member.id !== 'string') {
       res.status(500).json({ error: "Failed to create team member" });
       return;
     }
-    
-    // Step 4: Update the member with a permanent userId (using MongoDB _id)
-    // This is the key step for implementing the persistent user ID pattern
+
     await storage.updateTeamMemberUserId(member.id, member.id);
     console.log(`User registered with ID: ${member.id}`);
-    
-    // Step 5: Store the userId in the session (login step)
     req.session.userId = member.id;
-    
-    // Step 6: Return the complete member data
     const updatedMember = await storage.getTeamMemberById(member.id);
-    
+
     if (!updatedMember) {
       res.status(500).json({ error: "Failed to retrieve updated team member" });
       return;
     }
-    
+
     res.json(updatedMember);
+  });
+
+  // Placeholder for rpName, rpID, and origin.  These need to be defined appropriately.
+  const rpName = "YourAppName";
+  const rpID = "your.app.id";
+  const origin = "http://localhost:3000"; // Replace with your actual origin
+
+  app.post("/api/members/:id/webauthn/register", async (req, res) => {
+    const member = await storage.getTeamMemberById(req.params.id);
+    if (!member || member.userId !== req.session.userId) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const options = await generateRegistrationOptions({ //generateRegistrationOptions is not defined
+      rpName,
+      rpID,
+      userID: member.id,
+      userName: member.name,
+      attestationType: 'none'
+    });
+
+    req.session.currentChallenge = options.challenge;
+    res.json(options);
+  });
+
+  app.post("/api/members/:id/webauthn/verify", async (req, res) => {
+    const member = await storage.getTeamMemberById(req.params.id);
+    if (!member || member.userId !== req.session.userId) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const verification = await verifyRegistrationResponse({ //verifyRegistrationResponse is not defined
+      credential: req.body,
+      expectedChallenge: req.session.currentChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+    });
+
+    await storage.updateTeamMemberUserId(member.id, member.id, {
+      credentialID: verification.registrationInfo?.credentialID.toString('base64'),
+      credentialPublicKey: verification.registrationInfo?.credentialPublicKey.toString('base64')
+    });
+
+    res.json({ verified: true });
   });
 
   app.delete("/api/members/:id", async (req, res) => {
@@ -165,13 +194,10 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      // Check if user has permission to remove this member
-      // 1. Admin can remove any member
-      // 2. Regular user can only remove themselves
       const isCurrentUser = 
         req.session.userId === member.id || 
         (member.userId && req.session.userId === member.userId);
-      
+
       if (!req.session.isAdmin && (!req.session.userId || !isCurrentUser)) {
         res.status(403).json({ 
           error: "You can only remove yourself from teams. Admins can remove anyone." 
@@ -179,15 +205,26 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      // Remove the member from the database
-      await storage.removeTeamMember(id);
+      if (!req.session.isAdmin && member.credentialID) {
+        const options = await generateAuthenticationOptions({ //generateAuthenticationOptions is not defined
+          rpID,
+          allowCredentials: [{
+            id: Buffer.from(member.credentialID, 'base64'),
+            type: 'public-key'
+          }]
+        });
 
-      // Only clear the session if the user removed themselves and is not an admin
-      if (!req.session.isAdmin && isCurrentUser) {
-        // Set userId to undefined instead of null to satisfy TypeScript
-        req.session.userId = undefined;
+        req.session.currentChallenge = options.challenge;
+        return res.status(403).json({ 
+          error: "WebAuthn verification required",
+          options 
+        });
       }
 
+      await storage.removeTeamMember(id);
+      if (!req.session.isAdmin && isCurrentUser) {
+        req.session.userId = undefined;
+      }
       res.status(204).send();
     } catch (error) {
       console.error("Error removing team member:", error);

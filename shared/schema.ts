@@ -12,7 +12,9 @@ export const teamMemberSchema = z.object({
   whatsappNumber: z.string(),
   projectId: z.string(),
   sectionNumber: z.number().nullable().optional(),
-  userId: z.string().optional(), // Store the user's unique ID for persistent identification
+  userId: z.string().optional(),
+  credentialID: z.string().nullable().optional(),
+  credentialPublicKey: z.string().nullable().optional(),
 });
 
 // Define insert schemas
