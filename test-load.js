@@ -5,7 +5,7 @@ import fetch from 'node-fetch';
 // Configuration
 const PROJECT_ID = "67e023cbb3c9a0c455f9da78"; // Target project ID
 const TOTAL_MEMBERS = 200; // Number of members to add
-const BASE_URL = "http://localhost:3000"; // API URL (default Replit port)
+const BASE_URL = "http://localhost:5000"; // API URL (confirmed from server logs)
 
 // Generate a random Egyptian phone number
 function generateEgyptianPhoneNumber() {
