@@ -38,7 +38,7 @@ export default function ProjectPage() {
   } = useQuery<TeamMember[]>({
     queryKey: [`/api/projects/${projectId}/members`],
     enabled: !!projectId,
-    refetchInterval: 5000 // Auto-refresh every 5 seconds
+    staleTime: 60000 // Keep data fresh for 1 minute without refetching
   });
   
   const { data: adminStatus } = useQuery<{ isAdmin: boolean }>({
@@ -66,7 +66,8 @@ export default function ProjectPage() {
     member.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  const isLoading = membersLoading || membersRefetching;
+  // Only show loading indicators during initial load, not during refetching
+  const isLoading = membersLoading;
 
 
   return (
